@@ -1,4 +1,4 @@
-# 김준우 게임 (Top-Down Action RPG)
+# RPG (Top-Down Action RPG)
 
 Python과 Pygame으로 개발 중인 2D 탑다운 액션 RPG 프로젝트입니다.
 
