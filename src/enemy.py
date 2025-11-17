@@ -65,6 +65,27 @@ class Enemy(pygame.sprite.Sprite):
         
         self.rect.topleft = self.pos
 
+    def draw_health_bar(self, surface):
+        """적 개체 위에 체력 바를 그립니다."""
+        if self.hp < self.max_hp: # 최대 체력일 때는 그리지 않음
+            bar_width = 40
+            bar_height = 5
+            x = self.rect.x
+            y = self.rect.y - bar_height - 2 # 적 이미지 위에 약간의 간격을 둠
+
+            health_ratio = self.hp / self.max_hp
+            
+            # 배경 바 (회색)
+            bg_rect = pygame.Rect(x, y, bar_width, bar_height)
+            pygame.draw.rect(surface, GRAY, bg_rect)
+            
+            # 체력 바 (빨간색)
+            health_rect = pygame.Rect(x, y, bar_width * health_ratio, bar_height)
+            pygame.draw.rect(surface, RED, health_rect)
+            
+            # 테두리 (흰색)
+            pygame.draw.rect(surface, WHITE, bg_rect, 1)
+
     def draw(self, surface):
         """적을 화면에 그림"""
         surface.blit(self.image, self.rect)

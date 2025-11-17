@@ -64,13 +64,39 @@ def draw_text(text, font, color, surface, x, y, center=False):
         text_rect.topleft = (x, y)
     surface.blit(text_obj, text_rect)
 
-def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned):
+def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned, enemies):
     stage_name = STAGES[current_stage_index]['name']
     if is_boss_spawned:
         stage_text = f"Stage: {stage_name} - BOSS"
     else:
         stage_text = f"Stage: {stage_name} ({kill_count} / 100)"
     draw_text(stage_text, DESC_FONT, WHITE, surface, SCREEN_WIDTH / 2, 30, center=True)
+
+    # 보스 체력 바 그리기
+    if is_boss_spawned:
+        boss = next((enemy for enemy in enemies if isinstance(enemy, Boss)), None)
+        if boss:
+            boss_bar_width = SCREEN_WIDTH * 0.6
+            boss_bar_height = 20
+            boss_bar_x = (SCREEN_WIDTH - boss_bar_width) / 2
+            boss_bar_y = 60 # 스테이지 텍스트 아래
+
+            boss_health_ratio = boss.hp / boss.max_hp
+            
+            # 배경
+            bg_rect = pygame.Rect(boss_bar_x, boss_bar_y, boss_bar_width, boss_bar_height)
+            pygame.draw.rect(surface, GRAY, bg_rect)
+            
+            # 체력
+            fill_rect = pygame.Rect(boss_bar_x, boss_bar_y, boss_bar_width * boss_health_ratio, boss_bar_height)
+            pygame.draw.rect(surface, PURPLE, fill_rect)
+            
+            # 테두리
+            pygame.draw.rect(surface, WHITE, bg_rect, 2)
+            
+            # 보스 이름
+            boss_name_text = f"{boss.stats['name']}"
+            draw_text(boss_name_text, STATS_FONT, WHITE, surface, SCREEN_WIDTH / 2, boss_bar_y + boss_bar_height + 15, center=True)
 
     bar_length, bar_height = 400, 30
     hp_x, hp_y = 10, 10
@@ -449,7 +475,13 @@ def game_play_loop(selected_character_key):
 
         screen.fill(BLACK)
         all_sprites.draw(screen)
-        draw_hud(screen, player, current_stage_index, kill_count, is_boss_spawned)
+
+        # 모든 적의 체력 바 그리기 (보스 제외)
+        for enemy in enemies:
+            if not isinstance(enemy, Boss):
+                enemy.draw_health_bar(screen)
+
+        draw_hud(screen, player, current_stage_index, kill_count, is_boss_spawned, enemies)
         pygame.display.flip()
         pygame.time.Clock().tick(FPS)
     
