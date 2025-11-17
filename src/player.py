@@ -72,8 +72,27 @@ class Player(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(self.rect.center)
         self.velocity = pygame.math.Vector2(0, 0)
 
+        # --- 조준 및 발사 모드 ---
+        self.aim_mode = 'auto_target'  # 'auto_target' 또는 'manual_aim'
+        self.manual_fire_mode = 'click_fire' # 'click_fire' 또는 'cursor_auto_fire'
+        self.last_attack_time = 0 # 마지막 공격 시간 (쿨다운용)
+
         # --- 증강 정보 ---
         self.chosen_augments = []
+
+    def switch_aim_mode(self):
+        if self.aim_mode == 'auto_target':
+            self.aim_mode = 'manual_aim'
+        else:
+            self.aim_mode = 'auto_target'
+        print(f"조준 모드 변경: {self.aim_mode}")
+
+    def switch_manual_fire_mode(self):
+        if self.manual_fire_mode == 'click_fire':
+            self.manual_fire_mode = 'cursor_auto_fire'
+        else:
+            self.manual_fire_mode = 'click_fire'
+        print(f"수동 발사 모드 변경: {self.manual_fire_mode}")
 
     def activate_skill(self, all_sprites=None, enemies=None):
         now = pygame.time.get_ticks()
@@ -161,7 +180,7 @@ class Player(pygame.sprite.Sprite):
                     area_effect = AreaAttackEffect(nearest_enemy.pos.x, nearest_enemy.pos.y, 
                                                    area_radius, skill_damage, 500, GREEN) # 0.5초 지속, 초록색
                     new_skill_effects.append(area_effect)
-                    print(f"궁수 스킬 발동! {nearest_enemy.name} 위치에 범위 공격! 데미지: {skill_damage}")
+                    print(f"궁수 스킬 발동! {nearest_enemy.enemy_key} 위치에 범위 공격! 데미지: {skill_damage}")
                 else:
                     print("궁수 스킬 발동 실패: 주변에 적이 없습니다.")
 

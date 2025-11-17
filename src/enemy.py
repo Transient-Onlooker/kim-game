@@ -6,6 +6,8 @@ class Enemy(pygame.sprite.Sprite):
     def __init__(self, enemy_key, player, stage_level=1):
         super().__init__()
         
+        self.enemy_key = enemy_key # 적 종류를 식별하기 위한 키 저장
+        
         # 적 스탯 설정
         self.stats = ENEMIES[enemy_key].copy() # 원본 딕셔너리 수정을 방지하기 위해 복사
         

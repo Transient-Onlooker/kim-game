@@ -97,6 +97,14 @@ def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned):
 
     level_text = f"Level: {player.level}"
     draw_text(level_text, DESC_FONT, WHITE, surface, hp_x, exp_y + exp_bar_height + 5)
+
+    # --- 조준 및 발사 모드 표시 (레벨 아래 중앙) ---
+    if player.aim_mode == 'auto_target':
+        mode_text = "Aim: Auto Target"
+    else: # manual_aim
+        manual_mode_text = player.manual_fire_mode.replace('_', ' ').replace('fire', '').capitalize()
+        mode_text = f"Aim: Manual ({manual_mode_text.strip()})"
+    draw_text(mode_text, STATS_FONT, WHITE, surface, SCREEN_WIDTH / 2, exp_y + exp_bar_height + 15, center=True)
     
     jump_text = f"Jumps: {player.jump_charges}"
     draw_text(jump_text, DESC_FONT, WHITE, surface, SCREEN_WIDTH - 200, 10)
@@ -111,6 +119,7 @@ def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned):
         skill_text = f"Skill: {remaining_cd:.1f}s"
         skill_color = GRAY
     draw_text(skill_text, DESC_FONT, skill_color, surface, SCREEN_WIDTH - 200, 50)
+
 
 # --- 게임 상태 관리 ---
 
@@ -279,9 +288,7 @@ def game_play_loop(selected_character_key):
     spawn_interval = 1000
 
     ADD_ENEMY = pygame.USEREVENT + 1
-    PLAYER_ATTACK = pygame.USEREVENT + 2
     pygame.time.set_timer(ADD_ENEMY, spawn_interval)
-    pygame.time.set_timer(PLAYER_ATTACK, int(player.attack_speed * 1000))
 
     running = True
     while running:
@@ -306,6 +313,11 @@ def game_play_loop(selected_character_key):
                     all_sprites.add(new_projectiles)
                     all_skill_effects.add(new_skill_effects)
                     all_sprites.add(new_skill_effects)
+                if event.key == pygame.K_TAB: # TAB 키로 조준 모드 전환
+                    player.switch_aim_mode()
+                if event.key == pygame.K_h: # 'H' 키로 수동 발사 모드 전환
+                    if player.aim_mode == 'manual_aim': # 수동 조준 모드일 때만 작동
+                        player.switch_manual_fire_mode()
             
             if event.type == ADD_ENEMY and not is_boss_spawned:
                 stage_info = STAGES[current_stage_index]
@@ -313,17 +325,6 @@ def game_play_loop(selected_character_key):
                 new_enemy = Enemy(enemy_key, player, stage_level)
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
-
-            if event.type == PLAYER_ATTACK:
-                if enemies:
-                    new_weapon = Weapon(player, enemies)
-                    weapons.add(new_weapon)
-                    all_sprites.add(new_weapon)
-            
-            if event.type == pygame.USEREVENT:
-                if event.dict.get('action') == 'ATTACK_SPEED_CHANGED':
-                    pygame.time.set_timer(PLAYER_ATTACK, 0)
-                    pygame.time.set_timer(PLAYER_ATTACK, int(player.attack_speed * 1000))
             
             if event.type == SWORDSMAN_DASH_END:
                 pos = event.dict['pos']
@@ -350,6 +351,44 @@ def game_play_loop(selected_character_key):
                 pygame.time.set_timer(ADD_ENEMY, 0)
                 pygame.time.set_timer(ADD_ENEMY, int(spawn_interval))
                 print(f"새로운 스폰 간격: {spawn_interval}ms")
+
+        # --- 공격 로직 (이벤트 루프 밖에서 항상 체크) ---
+        now = pygame.time.get_ticks()
+        can_attack = now - player.last_attack_time > player.attack_speed * 1000
+        
+        fire_request = False
+        target_pos = None
+        use_nearest_enemy = False
+
+        # 1. 조준 모드에 따라 분기
+        if player.aim_mode == 'auto_target':
+            fire_request = True
+            use_nearest_enemy = True
+        
+        elif player.aim_mode == 'manual_aim':
+            # 2. 수동 조준 모드 내에서 발사 방식에 따라 분기
+            if player.manual_fire_mode == 'cursor_auto_fire':
+                fire_request = True
+                target_pos = pygame.mouse.get_pos()
+            
+            elif player.manual_fire_mode == 'click_fire':
+                if pygame.mouse.get_pressed()[0]: # 마우스 왼쪽 버튼 누름 확인
+                    fire_request = True
+                    target_pos = pygame.mouse.get_pos()
+
+        # 3. 발사 결정
+        if fire_request and can_attack:
+            player.last_attack_time = now
+            
+            if use_nearest_enemy:
+                if enemies: # 공격할 적이 있는지 확인
+                    new_weapon = Weapon(player, enemies=enemies)
+                    weapons.add(new_weapon)
+                    all_sprites.add(new_weapon)
+            elif target_pos:
+                new_weapon = Weapon(player, target_pos=target_pos)
+                weapons.add(new_weapon)
+                all_sprites.add(new_weapon)
 
         all_sprites.update()
         all_projectiles.update()
