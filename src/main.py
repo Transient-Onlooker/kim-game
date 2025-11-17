@@ -132,8 +132,8 @@ def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned, 
         mode_text = f"Aim: Manual ({manual_mode_text.strip()})"
     draw_text(mode_text, STATS_FONT, WHITE, surface, SCREEN_WIDTH / 2, exp_y + exp_bar_height + 15, center=True)
     
-    jump_text = f"Jumps: {player.jump_charges}"
-    draw_text(jump_text, DESC_FONT, WHITE, surface, SCREEN_WIDTH - 200, 10)
+    dash_text = f"Dashes: {player.dash_charges}"
+    draw_text(dash_text, DESC_FONT, WHITE, surface, SCREEN_WIDTH - 200, 10)
     
     now = pygame.time.get_ticks()
     time_since_skill = now - player.last_skill_time
@@ -332,7 +332,7 @@ def game_play_loop(selected_character_key):
                         running = False
                         return "change_character"
                 if event.key == pygame.K_SPACE:
-                    player.jump()
+                    player.dash(mouse_pos=pygame.mouse.get_pos())
                 if event.key == pygame.K_q:
                     new_projectiles, new_skill_effects = player.activate_skill(enemies=enemies)
                     all_projectiles.add(new_projectiles)
@@ -341,7 +341,7 @@ def game_play_loop(selected_character_key):
                     all_sprites.add(new_skill_effects)
                 if event.key == pygame.K_TAB: # TAB 키로 조준 모드 전환
                     player.switch_aim_mode()
-                if event.key == pygame.K_h: # 'H' 키로 수동 발사 모드 전환
+                if event.key == pygame.K_f: # 'F' 키로 수동 발사 모드 전환
                     if player.aim_mode == 'manual_aim': # 수동 조준 모드일 때만 작동
                         player.switch_manual_fire_mode()
             

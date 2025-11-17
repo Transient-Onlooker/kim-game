@@ -31,17 +31,17 @@ class Player(pygame.sprite.Sprite):
         self.exp = 0
         self.exp_to_next_level = 1000
 
-        # --- 점프 스탯 ---
-        self.jump_charges = 3
-        self.max_jump_charges = 3
-        self.jump_charge_time = 10000
-        self.last_charge_time = pygame.time.get_ticks()
-        self.is_jumping = False
+        # --- 대쉬 스탯 ---
+        self.dash_charges = 3
+        self.max_dash_charges = 3
+        self.dash_charge_time = 5000 # 5초
+        self.last_dash_charge_time = pygame.time.get_ticks()
+        self.is_dashing = False
         self.is_invincible = False
-        self.jump_duration = 500
-        self.jump_start_time = 0
-        self.jump_speed = 25
-        self.jump_velocity = pygame.math.Vector2(0, 0)
+        self.dash_start_time = 0
+        self.dash_duration = 150 # 0.15초 대쉬
+        self.dash_speed_multiplier = 4 # 기본 이동 속도의 4배
+        self.dash_direction = pygame.math.Vector2(0, 0) # 대쉬 방향
 
         # --- 스킬 스탯 ---
         self.skill_cooldown = self.stats.get('skill_cooldown', 99999)
@@ -50,12 +50,8 @@ class Player(pygame.sprite.Sprite):
         self.skill_start_time = 0
         self.skill_duration = self.stats.get('skill_duration', 0)
 
-        # --- 대쉬 스탯 (검사 스킬용) ---
-        self.is_dashing = False
-        self.dash_start_time = 0
-        self.dash_duration = 200 # 0.2초 대쉬
-        self.dash_speed_multiplier = 3 # 기본 이동 속도의 3배
-        self.dash_direction = pygame.math.Vector2(0, 0) # 대쉬 방향
+        # --- 기존 대쉬 스탯 (검사 스킬용)은 새로운 범용 대쉬 스탯으로 통합되었으므로 삭제 ---
+
 
         # --- 이미지 및 위치 ---
         try:
@@ -240,37 +236,43 @@ class Player(pygame.sprite.Sprite):
                 self.splash_radius = self.base_splash_radius
                 print(f"스플래쉬 범위 증가 -> {self.base_splash_radius}")
 
-    def jump(self):
-        if self.jump_charges > 0 and not self.is_jumping:
-            self.is_jumping = True
+    def dash(self, mouse_pos):
+        if self.dash_charges > 0 and not self.is_dashing:
+            self.is_dashing = True
             self.is_invincible = True
-            self.jump_charges -= 1
-            self.jump_start_time = pygame.time.get_ticks()
+            self.dash_charges -= 1
+            self.dash_start_time = pygame.time.get_ticks()
+            
+            # 1. 이동 중일 경우, 해당 방향으로 대쉬
             if self.velocity.length() > 0:
-                self.jump_velocity = self.velocity.normalize() * self.jump_speed
+                self.dash_direction = self.velocity.normalize()
+            # 2. 멈춰있을 경우, 마우스 커서 방향으로 대쉬
             else:
-                self.jump_velocity = pygame.math.Vector2(0, 0)
+                mouse_vec = pygame.math.Vector2(mouse_pos)
+                self.dash_direction = (mouse_vec - self.pos).normalize() if (mouse_vec - self.pos).length() > 0 else pygame.math.Vector2(1, 0)
+
 
     def update(self):
         now = pygame.time.get_ticks()
 
-        # 점프 충전
-        if self.jump_charges < self.max_jump_charges and now - self.last_charge_time > self.jump_charge_time:
-            self.jump_charges += 1
-            self.last_charge_time = now
+        # 대쉬 충전
+        if self.dash_charges < self.max_dash_charges and now - self.last_dash_charge_time > self.dash_charge_time:
+            self.dash_charges += 1
+            self.last_dash_charge_time = now
         
         # 스킬 지속시간 처리
         if self.is_skill_active and now - self.skill_start_time > self.skill_duration:
             self.is_skill_active = False
             self.deactivate_skill_effects()
 
-        # 대쉬 상태 처리 (검사 스킬)
+        # 대쉬 상태 처리 (범용)
         if self.is_dashing:
             if now - self.dash_start_time > self.dash_duration:
                 self.is_dashing = False
                 self.is_invincible = False
-                if self.character_key == 'swordsman':
-                    # 대쉬 종료 시 범위 공격 이벤트 발생
+                # 검사 스킬의 경우, 스킬 플래그도 비활성화
+                if self.character_key == 'swordsman' and self.is_skill_active:
+                    self.is_skill_active = False 
                     pygame.event.post(pygame.event.Event(SWORDSMAN_DASH_END, {
                         'pos': self.pos,
                         'skill_damage': self.stats['skill_damage']
@@ -280,16 +282,6 @@ class Player(pygame.sprite.Sprite):
                 self.pos += self.dash_direction * self.base_move_speed * self.dash_speed_multiplier * (1/FPS)
                 self.rect.center = self.pos
                 return # 대쉬 중에는 일반 이동 처리 건너뛰기
-
-        # 점프 상태 처리
-        if self.is_jumping:
-            if now - self.jump_start_time > self.jump_duration:
-                self.is_jumping = False
-                self.is_invincible = False
-            else:
-                self.pos += self.jump_velocity * (1/FPS)
-                self.rect.center = self.pos
-                return # 점프 중에는 일반 이동 처리 건너뛰기
 
         # 일반 이동 처리
         keys = pygame.key.get_pressed()
