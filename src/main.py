@@ -132,18 +132,33 @@ def draw_hud(surface, player, current_stage_index, kill_count, is_boss_spawned, 
         mode_text = f"Aim: Manual ({manual_mode_text.strip()})"
     draw_text(mode_text, STATS_FONT, WHITE, surface, SCREEN_WIDTH / 2, exp_y + exp_bar_height + 15, center=True)
     
-    dash_text = f"Dashes: {player.dash_charges}"
-    draw_text(dash_text, DESC_FONT, WHITE, surface, SCREEN_WIDTH - 200, 10)
+    # 대쉬 HUD
+    if player.dash_charges > 0:
+        dash_text = f"Dashes: {player.dash_charges}"
+        dash_color = WHITE
+    else: # 대쉬 0개일 때 쿨다운 표시
+        now = pygame.time.get_ticks()
+        time_since_recharge_start = now - player.last_dash_recharge_start_time
+        remaining_cd = (player.dash_charge_time - time_since_recharge_start) / 1000
+        remaining_cd = max(0, remaining_cd)
+        dash_text = f"Dash CD: {remaining_cd:.1f}s"
+        dash_color = GRAY
+    draw_text(dash_text, DESC_FONT, dash_color, surface, SCREEN_WIDTH - 200, 10)
     
+    # 스킬 HUD
     now = pygame.time.get_ticks()
     time_since_skill = now - player.last_skill_time
-    if time_since_skill >= player.skill_cooldown:
-        skill_text = "Skill: Ready"
+    if player.is_skill_active:
+        remaining_cd = (player.skill_cooldown - time_since_skill) / 1000
+        skill_text = f"Skill: {remaining_cd:.1f}s"
         skill_color = GREEN
-    else:
+    elif time_since_skill < player.skill_cooldown:
         remaining_cd = (player.skill_cooldown - time_since_skill) / 1000
         skill_text = f"Skill: {remaining_cd:.1f}s"
         skill_color = GRAY
+    else:
+        skill_text = "Skill: Ready"
+        skill_color = GREEN
     draw_text(skill_text, DESC_FONT, skill_color, surface, SCREEN_WIDTH - 200, 50)
 
 
@@ -362,8 +377,6 @@ def game_play_loop(selected_character_key):
             
             if event.type == AUGMENT_READY:
                 augment_selection_screen(event.player)
-                pygame.time.set_timer(PLAYER_ATTACK, 0)
-                pygame.time.set_timer(PLAYER_ATTACK, int(player.attack_speed * 1000))
             
             if event.type == STAGE_CLEAR:
                 player.level_up()

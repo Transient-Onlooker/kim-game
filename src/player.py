@@ -35,13 +35,13 @@ class Player(pygame.sprite.Sprite):
         self.dash_charges = 3
         self.max_dash_charges = 3
         self.dash_charge_time = 5000 # 5초
-        self.last_dash_charge_time = pygame.time.get_ticks()
+        self.last_dash_recharge_start_time = 0 # 대쉬 쿨타임 시작 시간
         self.is_dashing = False
         self.is_invincible = False
         self.dash_start_time = 0
-        self.dash_duration = 150 # 0.15초 대쉬
-        self.dash_speed_multiplier = 4 # 기본 이동 속도의 4배
-        self.dash_direction = pygame.math.Vector2(0, 0) # 대쉬 방향
+        self.dash_duration = 150 # 0.15초 대쉬 (무적 시간)
+        # self.dash_speed_multiplier = 4 # 사용되지 않음
+        # self.dash_direction = pygame.math.Vector2(0, 0) # 사용되지 않음
 
         # --- 스킬 스탯 ---
         self.skill_cooldown = self.stats.get('skill_cooldown', 99999)
@@ -238,35 +238,57 @@ class Player(pygame.sprite.Sprite):
 
     def dash(self, mouse_pos):
         if self.dash_charges > 0 and not self.is_dashing:
+            # 쿨타임 타이머 시작 (최대치일 때만)
+            if self.dash_charges == self.max_dash_charges:
+                self.last_dash_recharge_start_time = pygame.time.get_ticks()
+
             self.is_dashing = True
             self.is_invincible = True
             self.dash_charges -= 1
             self.dash_start_time = pygame.time.get_ticks()
             
-            # 1. 이동 중일 경우, 해당 방향으로 대쉬
+            dash_distance = 250 
+            direction = pygame.math.Vector2(0, 0)
+
+            # 1. 이동 중일 경우 (WASD), 해당 방향으로 대쉬
             if self.velocity.length() > 0:
-                self.dash_direction = self.velocity.normalize()
+                direction = self.velocity.normalize()
             # 2. 멈춰있을 경우, 마우스 커서 방향으로 대쉬
             else:
                 mouse_vec = pygame.math.Vector2(mouse_pos)
-                self.dash_direction = (mouse_vec - self.pos).normalize() if (mouse_vec - self.pos).length() > 0 else pygame.math.Vector2(1, 0)
+                direction = mouse_vec - self.pos
+                if direction.length() == 0:
+                    direction = pygame.math.Vector2(1, 0) # 기본 방향 (오른쪽)
+                else:
+                    direction.normalize_ip()
+
+            # 결정된 방향으로 즉시 이동 (점멸)
+            self.pos += direction * dash_distance
+            
+            # 화면 밖으로 나가지 않도록 보정
+            self.pos.x = max(0, min(SCREEN_WIDTH, self.pos.x))
+            self.pos.y = max(0, min(SCREEN_HEIGHT, self.pos.y))
+            
+            self.rect.center = self.pos
 
 
     def update(self):
         now = pygame.time.get_ticks()
 
         # 대쉬 충전
-        if self.dash_charges < self.max_dash_charges and now - self.last_dash_charge_time > self.dash_charge_time:
-            self.dash_charges += 1
-            self.last_dash_charge_time = now
+        if self.dash_charges < self.max_dash_charges:
+            if now - self.last_dash_recharge_start_time > self.dash_charge_time:
+                self.dash_charges += 1
+                self.last_dash_recharge_start_time = now # 다음 충전까지의 타이머 다시 시작
         
         # 스킬 지속시간 처리
         if self.is_skill_active and now - self.skill_start_time > self.skill_duration:
             self.is_skill_active = False
             self.deactivate_skill_effects()
 
-        # 대쉬 상태 처리 (범용)
+        # 대쉬 상태 처리 (범용) -> 이제 무적 시간 및 스킬 후처리용
         if self.is_dashing:
+            # 대쉬는 즉시 발동되지만, 짧은 시간 동안 무적 상태와 재사용 방지를 유지
             if now - self.dash_start_time > self.dash_duration:
                 self.is_dashing = False
                 self.is_invincible = False
@@ -277,11 +299,6 @@ class Player(pygame.sprite.Sprite):
                         'pos': self.pos,
                         'skill_damage': self.stats['skill_damage']
                     }))
-            else:
-                # 대쉬 방향으로 이동
-                self.pos += self.dash_direction * self.base_move_speed * self.dash_speed_multiplier * (1/FPS)
-                self.rect.center = self.pos
-                return # 대쉬 중에는 일반 이동 처리 건너뛰기
 
         # 일반 이동 처리
         keys = pygame.key.get_pressed()
