@@ -1,6 +1,7 @@
 import pygame
 import random
 from config import *
+from utils import load_image
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, enemy_key, player, stage_level=1):
@@ -20,14 +21,8 @@ class Enemy(pygame.sprite.Sprite):
         self.exp = self.stats['exp'] * multiplier
         
         # 이미지 및 위치
-        try:
-            image_path = f"src/assets/images/{enemy_key}.png"
-            original_image = pygame.image.load(image_path).convert_alpha()
-            self.image = pygame.transform.scale(original_image, (40, 40)) # 이미지 크기 통일
-        except pygame.error as e:
-            print(f"적 이미지를 불러올 수 없습니다: {e}")
-            self.image = pygame.Surface((40, 40))
-            self.image.fill(RED)
+        image_path = f"src/assets/images/{enemy_key}.png"
+        self.image = load_image(image_path, scale=(40, 40))
         
         side = random.choice(['top', 'bottom', 'left', 'right'])
         if side == 'top':

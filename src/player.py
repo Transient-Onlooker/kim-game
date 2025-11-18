@@ -1,6 +1,7 @@
 import pygame
 from config import *
 from skill_effects import Projectile, AreaAttackEffect # AreaAttackEffect 임포트
+from utils import load_image
 import math
 
 # 커스텀 이벤트 정의
@@ -25,6 +26,11 @@ class Player(pygame.sprite.Sprite):
         self.move_speed = self.base_move_speed
         self.base_splash_radius = self.stats.get('splash_radius', 0)
         self.splash_radius = self.base_splash_radius
+        self.defense = 0 # 방어력 스탯 추가
+        
+        # --- 임시 스탯 버프 ---
+        # 예: {"attack_power": {"amount": 50, "expire_level": 25}}
+        self.temporary_boosts = {}
         
         # --- 레벨 및 경험치 ---
         self.level = 1
@@ -54,15 +60,9 @@ class Player(pygame.sprite.Sprite):
 
 
         # --- 이미지 및 위치 ---
-        try:
-            image_key = "swordman" if self.character_key == "swordsman" else self.character_key
-            image_path = f"src/assets/images/{image_key}.png"
-            original_image = pygame.image.load(image_path).convert_alpha()
-            self.image = pygame.transform.scale(original_image, (50, 50))
-        except pygame.error as e:
-            print(f"플레이어 이미지를 불러올 수 없습니다: {e}")
-            self.image = pygame.Surface((50, 50))
-            self.image.fill(BLUE)
+        image_key = "swordman" if self.character_key == "swordsman" else self.character_key
+        image_path = f"src/assets/images/{image_key}.png"
+        self.image = load_image(image_path, scale=(50, 50))
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
         
         self.pos = pygame.math.Vector2(self.rect.center)
@@ -75,6 +75,7 @@ class Player(pygame.sprite.Sprite):
 
         # --- 증강 정보 ---
         self.chosen_augments = []
+        self.coins = 0
 
     def switch_aim_mode(self):
         if self.aim_mode == 'auto_target':
@@ -90,7 +91,7 @@ class Player(pygame.sprite.Sprite):
             self.manual_fire_mode = 'click_fire'
         print(f"수동 발사 모드 변경: {self.manual_fire_mode}")
 
-    def activate_skill(self, all_sprites=None, enemies=None):
+    def activate_skill(self, all_sprites=None, enemies=None, mouse_pos=None):
         now = pygame.time.get_ticks()
         new_projectiles = []
         new_skill_effects = []
@@ -139,20 +140,38 @@ class Player(pygame.sprite.Sprite):
                     new_projectiles.append(projectile)
                 print(f"암살자 스킬 발동! {num_projectiles}개의 표창 발사!")
             
-            # 검사 스킬: 대쉬하며 범위 공격
+            # 검사 스킬: 대쉬하며 범위 공격 (즉시 발동)
             elif self.character_key == 'swordsman':
-                self.is_skill_active = True
-                self.is_dashing = True
-                self.skill_start_time = now
-                self.dash_start_time = now
-                self.is_invincible = True # 대쉬 중 무적
-                
-                # 대쉬 방향 설정: 현재 이동 방향이 있으면 그 방향으로, 없으면 기본 방향 (오른쪽)
-                if self.velocity.length() > 0:
-                    self.dash_direction = self.velocity.normalize()
-                else:
-                    self.dash_direction = pygame.math.Vector2(1, 0) # 기본 오른쪽
                 print("검사 스킬 발동! 대쉬!")
+                
+                # 1. 대쉬 방향 결정 (일반 대쉬와 동일한 로직)
+                direction = pygame.math.Vector2(0, 0)
+                if self.velocity.length() > 0:
+                    direction = self.velocity.normalize()
+                elif mouse_pos: # 멈춰있을 경우, 마우스 커서 방향으로
+                    mouse_vec = pygame.math.Vector2(mouse_pos)
+                    direction = mouse_vec - self.pos
+                    if direction.length() == 0:
+                        direction = pygame.math.Vector2(1, 0) # 기본 방향 (오른쪽)
+                    else:
+                        direction.normalize_ip()
+                else: # mouse_pos가 없는 비상상황
+                    direction = pygame.math.Vector2(1, 0) # 기본 방향 (오른쪽)
+
+                # 2. 순간이동
+                skill_dash_distance = 400 # 일반 대쉬보다 긴 거리
+                self.pos += direction * skill_dash_distance
+                
+                # 화면 밖으로 나가지 않도록 보정
+                self.pos.x = max(0, min(SCREEN_WIDTH, self.pos.x))
+                self.pos.y = max(0, min(SCREEN_HEIGHT, self.pos.y))
+                self.rect.center = self.pos
+
+                # 3. 도착 지점에 범위 공격 이펙트 생성
+                skill_damage = self.stats['skill_damage']
+                area_radius = 120 # 스킬 범위
+                area_effect = AreaAttackEffect(self.pos.x, self.pos.y, area_radius, skill_damage, 300) # 0.3초 지속
+                new_skill_effects.append(area_effect)
             
             # 궁수 스킬: 거대한 화살로 범위 공격
             elif self.character_key == 'archer':
@@ -202,12 +221,31 @@ class Player(pygame.sprite.Sprite):
         while self.exp >= self.exp_to_next_level:
             self.level_up()
 
+    def take_damage(self, amount):
+        """플레이어가 데미지를 받을 때 방어력을 적용하여 체력을 감소시킵니다."""
+        actual_damage = max(1, amount - self.defense) # 최소 1의 데미지는 받도록
+        self.hp -= actual_damage
+
     def level_up(self):
         self.exp -= self.exp_to_next_level
         self.level += 1
         level_tier = (self.level - 1) // 10
         self.exp_to_next_level = (level_tier + 1) * 1000
         print(f"레벨 업! 현재 레벨: {self.level}")
+
+        # 만료된 임시 버프 확인 및 제거
+        expired_boosts = []
+        for stat, boost_info in self.temporary_boosts.items():
+            if self.level >= boost_info["expire_level"]:
+                expired_boosts.append(stat)
+        
+        for stat in expired_boosts:
+            boost_amount = self.temporary_boosts[stat]["amount"]
+            current_value = getattr(self, stat)
+            setattr(self, stat, current_value - boost_amount)
+            print(f"{stat} 버프가 만료되었습니다. (감소량: {boost_amount})")
+            del self.temporary_boosts[stat]
+
         if self.level % 10 == 0:
             pygame.event.post(pygame.event.Event(AUGMENT_READY, {'player': self})) # 증강 선택 이벤트 발생
 

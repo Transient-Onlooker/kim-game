@@ -1,6 +1,7 @@
 # skill_effects.py
 import pygame
 from config import *
+from utils import load_image
 
 class SkillEffect(pygame.sprite.Sprite):
     def __init__(self, x, y, radius, damage, duration, color):
@@ -19,8 +20,7 @@ class SkillEffect(pygame.sprite.Sprite):
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, x, y, target_x, target_y, speed, damage, image_path):
         super().__init__()
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.image = pygame.transform.scale(self.image, (20, 20)) # Adjust size as needed
+        self.image = load_image(image_path, scale=(20, 20)) # Adjust size as needed
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pygame.math.Vector2(x, y)
         self.target = pygame.math.Vector2(target_x, target_y)

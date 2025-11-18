@@ -1,5 +1,6 @@
 import pygame
 from config import *
+from utils import load_image
 import random
 
 # 커스텀 이벤트 정의
@@ -9,6 +10,7 @@ class Boss(pygame.sprite.Sprite):
     def __init__(self, boss_key, player, stage_level=1):
         super().__init__()
         
+        self.enemy_key = boss_key # 보스 키 저장
         self.stats = ENEMIES[boss_key].copy()
         
         # 스테이지 레벨에 따른 스탯 강화
@@ -19,15 +21,8 @@ class Boss(pygame.sprite.Sprite):
         self.move_speed = self.stats['move_speed']
         
         # 이미지 및 위치 (크기를 더 크게 설정)
-        try:
-            # 보스 이미지 파일명이 boss_key와 같다고 가정 (예: fire_boss.png)
-            image_path = f"src/assets/images/{boss_key}.png"
-            original_image = pygame.image.load(image_path).convert_alpha()
-            self.image = pygame.transform.scale(original_image, (120, 120)) # 크기 120x120
-        except pygame.error as e:
-            print(f"보스 이미지를 불러올 수 없습니다: {e}")
-            self.image = pygame.Surface((120, 120))
-            self.image.fill(RED)
+        image_path = f"src/assets/images/{boss_key}.png"
+        self.image = load_image(image_path, scale=(120, 120))
             
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, 150)) # 화면 상단 중앙에서 등장
         self.pos = pygame.math.Vector2(self.rect.center)
@@ -36,8 +31,10 @@ class Boss(pygame.sprite.Sprite):
     def take_damage(self, amount):
         self.hp -= amount
         if self.hp <= 0:
+            # 스테이지 클리어 이벤트에 'boss' 객체(self)를 포함하여 전달
+            stage_clear_event = pygame.event.Event(STAGE_CLEAR, {"boss": self})
+            pygame.event.post(stage_clear_event)
             self.kill()
-            pygame.event.post(pygame.event.Event(STAGE_CLEAR)) # 스테이지 클리어 이벤트 발생
             return 0 # 보스는 경험치를 주지 않음
         return 0
 

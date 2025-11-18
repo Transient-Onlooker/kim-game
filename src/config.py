@@ -18,6 +18,9 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 PURPLE = (128, 0, 128)
 
+# --- 게임 플레이 설정 ---
+COIN_COLLECTION_RADIUS = 50 # 코인 수집 반경 (픽셀)
+
 # --- 캐릭터 정보 ---
 # 기획서에 명시된 스탯을 기반으로 작성
 # key: 캐릭터 영문명 (코드 내에서 사용할 이름)
@@ -183,28 +186,28 @@ ENEMIES = {
     "fire_boss": {
         "name": "화염 군주",
         "hp": 5000,
-        "attack_power": 200,
+        "attack_power": 300,
         "move_speed": 2,
         "exp": 0 # 보스는 경험치 대신 즉시 레벨업
     },
     "ice_boss": {
         "name": "빙하의 주인",
         "hp": 6000,
-        "attack_power": 250,
+        "attack_power": 375,
         "move_speed": 2,
         "exp": 0
     },
     "poison_boss": {
         "name": "독의 화신",
         "hp": 7000,
-        "attack_power": 300,
+        "attack_power": 450,
         "move_speed": 2,
         "exp": 0
     },
     "void_boss": {
         "name": "공허의 그림자",
         "hp": 8000,
-        "attack_power": 350,
+        "attack_power": 525,
         "move_speed": 2,
         "exp": 0
     }
@@ -262,3 +265,50 @@ STAGES = [
         "boss": "void_boss"
     }
 ]
+
+# --- 상점 아이템 정보 ---
+SHOP_ITEMS = {
+    "health_potion": {
+        "name": "체력 포션",
+        "type": "consumable",
+        "stat": "hp",
+        "icon": "health_potion.png",
+        "value_range": (100, 500), # 회복량 범위
+        "price_multiplier": 0.5 # 가치 1당 가격
+    },
+    "xp_potion": {
+        "name": "경험치 포션",
+        "type": "consumable",
+        "stat": "exp",
+        "icon": "xp_potion.png",
+        "value_range": (200, 1000), # 경험치 획득량 범위
+        "price_multiplier": 0.3
+    },
+    "attack_boost_item": {
+        "name": "공격력 증폭기",
+        "type": "temporary_stat_boost",
+        "stat": "attack_power",
+        "duration": 10, # 10레벨 동안 지속
+        "icon": "attack_boost_icon.png",
+        "value_range": (10, 50), # 공격력 증가량 범위
+        "price_multiplier": 10
+    },
+    "defense_boost_item": {
+        "name": "방어력 증폭기",
+        "type": "temporary_stat_boost",
+        "stat": "defense", # 플레이어에게 defense 속성 추가 필요
+        "duration": 10,
+        "icon": "defense_boost_icon.png",
+        "value_range": (5, 25), # 방어력 증가량 범위
+        "price_multiplier": 12
+    },
+    "speed_boost_item": {
+        "name": "신속의 비약",
+        "type": "temporary_stat_boost",
+        "stat": "move_speed",
+        "duration": 10,
+        "icon": "speed_boost_icon.png",
+        "value_range": (1, 5), # 이동속도 증가량 범위
+        "price_multiplier": 50
+    }
+}

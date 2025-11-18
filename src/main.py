@@ -7,6 +7,7 @@ from enemy import Enemy
 from weapon import Weapon
 from skill_effects import Projectile, AreaAttackEffect
 from boss import Boss, STAGE_CLEAR
+from utils import load_image
 
 # --- 초기화 ---
 pygame.init()
@@ -268,6 +269,54 @@ def view_augments_screen(player):
         pygame.time.Clock().tick(FPS)
     return "pause"
 
+def confirmation_dialog(message):
+    dialog_width, dialog_height = 700, 300
+    dialog_x = (SCREEN_WIDTH - dialog_width) / 2
+    dialog_y = (SCREEN_HEIGHT - dialog_height) / 2
+    dialog_rect = pygame.Rect(dialog_x, dialog_y, dialog_width, dialog_height)
+
+    yes_button = Button("예", dialog_x + 150, dialog_y + 180, 150, 60, LIGHT_GRAY, WHITE, "yes")
+    no_button = Button("아니오", dialog_x + 400, dialog_y + 180, 150, 60, LIGHT_GRAY, WHITE, "no")
+    buttons = [yes_button, no_button]
+
+    confirming = True
+    while confirming:
+        mouse_pos = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return False # Escape는 취소
+
+            for btn in buttons:
+                result = btn.handle_event(event)
+                if result == "yes":
+                    return True
+                elif result == "no":
+                    return False
+
+        # 뒷 배경을 어둡게 처리
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 220))
+        screen.blit(overlay, (0, 0))
+        
+        # 다이얼로그 박스 그리기
+        pygame.draw.rect(screen, BLACK, dialog_rect, border_radius=15)
+        pygame.draw.rect(screen, WHITE, dialog_rect, 3, border_radius=15)
+
+        # 메시지를 줄바꿈하여 표시
+        lines = message.split('\n')
+        for i, line in enumerate(lines):
+            draw_text(line, DESC_FONT, WHITE, screen, SCREEN_WIDTH / 2, dialog_y + 80 + i * 45, center=True)
+
+        for btn in buttons:
+            btn.is_hovered = btn.rect.collidepoint(mouse_pos)
+            btn.draw(screen)
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(FPS)
+
 def pause_menu(player):
     paused = True
     menu_options = {
@@ -299,7 +348,9 @@ def pause_menu(player):
                 elif result == "exit_game":
                     return "exit_game"
                 elif result == "change_character":
-                    return "change_character"
+                    warning_message = "캐릭터를 바꾸면 처음부터 시작해야 합니다.\n정말 진행하시겠습니까?"
+                    if confirmation_dialog(warning_message):
+                        return "change_character"
                 elif result == "view_augments":
                     # 증강 보기 화면에서 "exit_game"이 반환될 수 있음
                     if view_augments_screen(player) == "exit_game":
@@ -315,8 +366,136 @@ def pause_menu(player):
         pygame.display.flip()
         pygame.time.Clock().tick(FPS)
 
+from items import Coin
+from coin_system import handle_enemy_death_drops, update_coin_collection, draw_coin_hud
+
+# ... (기존 코드) ...
+
+def shop_screen(player):
+    """보스 클리어 후 아이템을 구매할 수 있는 상점 화면"""
+    shopping = True
+    
+    # --- 상점 아이템 생성 ---
+    shop_item_keys = random.sample(list(SHOP_ITEMS.keys()), 3)
+    shop_items = []
+    for key in shop_item_keys:
+        item_info = SHOP_ITEMS[key]
+        value = random.randint(*item_info["value_range"])
+        price = int(value * item_info["price_multiplier"])
+        
+        item = {
+            "key": key,
+            "name": item_info["name"],
+            "type": item_info["type"],
+            "stat": item_info["stat"],
+            "icon": item_info["icon"],
+            "value": value,
+            "price": price,
+            "description": ""
+        }
+
+        if item["type"] == "consumable":
+            item["description"] = f"{item['stat']} {item['value']} 즉시 회복"
+        elif item["type"] == "temporary_stat_boost":
+            duration = item_info["duration"]
+            item["description"] = f"{item['stat']} +{item['value']} ({duration}레벨 동안)"
+            item["duration"] = duration
+
+        shop_items.append(item)
+
+    # --- UI 버튼 생성 ---
+    exit_button = Button("나가기", SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT - 120, 200, 60, LIGHT_GRAY, WHITE, "exit")
+    item_buttons = []
+    button_x = 250
+    for i, item in enumerate(shop_items):
+        button = Button(f"구매 ({item['price']} C)", button_x + i * 500, 650, 250, 60, GREEN, WHITE, item["key"])
+        item_buttons.append(button)
+
+    while shopping:
+        mouse_pos = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: return "exit_game"
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: shopping = False
+            if exit_button.handle_event(event) == "exit": shopping = False
+
+            for i, btn in enumerate(item_buttons):
+                if btn.handle_event(event):
+                    item_to_buy = shop_items[i]
+                    if player.coins >= item_to_buy["price"]:
+                        player.coins -= item_to_buy["price"]
+                        print(f"{item_to_buy['name']}을(를) 구매했습니다!")
+
+                        # 아이템 효과 적용
+                        if item_to_buy["type"] == "consumable":
+                            if item_to_buy["stat"] == "hp":
+                                player.hp = min(player.max_hp, player.hp + item_to_buy["value"])
+                            elif item_to_buy["stat"] == "exp":
+                                player.gain_exp(item_to_buy["value"])
+                        
+                        elif item_to_buy["type"] == "temporary_stat_boost":
+                            stat = item_to_buy["stat"]
+                            amount = item_to_buy["value"]
+                            duration = item_to_buy["duration"]
+                            
+                            # 기존 버프가 있으면 중첩 (만료 레벨은 새로 갱신)
+                            if stat in player.temporary_boosts:
+                                # 기존 버프 제거
+                                old_amount = player.temporary_boosts[stat]["amount"]
+                                setattr(player, stat, getattr(player, stat) - old_amount)
+                                
+                            # 새 버프 적용
+                            setattr(player, stat, getattr(player, stat) + amount)
+                            player.temporary_boosts[stat] = {
+                                "amount": amount,
+                                "expire_level": player.level + duration
+                            }
+
+                        # 구매 후 버튼 비활성화 또는 제거
+                        shop_items.pop(i)
+                        item_buttons.pop(i)
+                        break # 버튼 리스트가 변경되었으므로 루프 탈출
+                    else:
+                        print("코인이 부족합니다!")
+
+
+        # --- 화면 그리기 ---
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 220))
+        screen.blit(overlay, (0, 0))
+
+        draw_text("상점", TITLE_FONT, WHITE, screen, SCREEN_WIDTH / 2, 100, center=True)
+        
+        merchant_icon = load_image("src/assets/images/merchant.png", scale=(150, 150))
+        screen.blit(merchant_icon, (SCREEN_WIDTH / 2 - 75, 180))
+
+        # 아이템 정보 표시
+        item_x = 380
+        for item in shop_items:
+            icon_path = f"src/assets/images/{item['icon']}"
+            icon = load_image(icon_path, scale=(80, 80))
+            screen.blit(icon, (item_x - 40, 420))
+            
+            draw_text(item["name"], DESC_FONT, WHITE, screen, item_x, 520, center=True)
+            draw_text(item["description"], STATS_FONT, GREEN, screen, item_x, 570, center=True)
+            item_x += 500
+
+        # 버튼 그리기
+        exit_button.is_hovered = exit_button.rect.collidepoint(mouse_pos)
+        exit_button.draw(screen)
+        for btn in item_buttons:
+            btn.is_hovered = btn.rect.collidepoint(mouse_pos)
+            btn.draw(screen)
+        
+        draw_coin_hud(screen, player)
+        pygame.display.flip()
+        pygame.time.Clock().tick(FPS)
+    
+    return "continue"
+
+
 def game_play_loop(selected_character_key):
     all_sprites, enemies, weapons = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
+    all_coins = pygame.sprite.Group()
     player = Player(selected_character_key)
     all_sprites.add(player)
     all_projectiles = pygame.sprite.Group()
@@ -333,45 +512,32 @@ def game_play_loop(selected_character_key):
 
     running = True
     while running:
+        mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                return "exit_game" # 게임 전체 종료를 위해
+                return "exit_game"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     action = pause_menu(player)
-                    if action == "exit_game":
-                        running = False
-                        return "exit_game"
-                    elif action == "change_character":
-                        running = False
-                        return "change_character"
-                if event.key == pygame.K_SPACE:
-                    player.dash(mouse_pos=pygame.mouse.get_pos())
+                    if action == "exit_game": return "exit_game"
+                    if action == "change_character": return "change_character"
+                if event.key == pygame.K_SPACE: player.dash(mouse_pos=mouse_pos)
                 if event.key == pygame.K_q:
-                    new_projectiles, new_skill_effects = player.activate_skill(enemies=enemies)
+                    new_projectiles, new_skill_effects = player.activate_skill(enemies=enemies, mouse_pos=mouse_pos)
                     all_projectiles.add(new_projectiles)
-                    all_sprites.add(new_projectiles)
-                    all_skill_effects.add(new_skill_effects)
-                    all_sprites.add(new_skill_effects)
-                if event.key == pygame.K_TAB: # TAB 키로 조준 모드 전환
-                    player.switch_aim_mode()
-                if event.key == pygame.K_f: # 'F' 키로 수동 발사 모드 전환
-                    if player.aim_mode == 'manual_aim': # 수동 조준 모드일 때만 작동
-                        player.switch_manual_fire_mode()
+                    all_sprites.add(new_projectiles, new_skill_effects)
+                if event.key == pygame.K_TAB: player.switch_aim_mode()
+                if event.key == pygame.K_f and player.aim_mode == 'manual_aim': player.switch_manual_fire_mode()
             
             if event.type == ADD_ENEMY and not is_boss_spawned:
-                stage_info = STAGES[current_stage_index]
-                enemy_key = random.choice(stage_info["enemies"])
+                enemy_key = random.choice(STAGES[current_stage_index]["enemies"])
                 new_enemy = Enemy(enemy_key, player, stage_level)
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
             
             if event.type == SWORDSMAN_DASH_END:
-                pos = event.dict['pos']
-                skill_damage = event.dict['skill_damage']
-                area_radius = 100
-                area_effect = AreaAttackEffect(pos.x, pos.y, area_radius, skill_damage, 200)
+                area_effect = AreaAttackEffect(event.dict['pos'].x, event.dict['pos'].y, 100, event.dict['skill_damage'], 200)
                 all_skill_effects.add(area_effect)
                 all_sprites.add(area_effect)
             
@@ -379,78 +545,64 @@ def game_play_loop(selected_character_key):
                 augment_selection_screen(event.player)
             
             if event.type == STAGE_CLEAR:
+                handle_enemy_death_drops(event.dict['boss'], all_sprites, all_coins)
+                
+                # 상점 화면 호출
+                shop_action = shop_screen(player)
+                if shop_action == "exit_game":
+                    return "exit_game"
+
                 player.level_up()
                 current_stage_index = (current_stage_index + 1) % len(STAGES)
                 stage_level += 1
                 kill_count = 0
                 is_boss_spawned = False
-                for enemy in enemies:
-                    enemy.kill()
+                for enemy in enemies: enemy.kill()
                 spawn_interval = max(200, 1000 - (stage_level - 1) * 100)
                 pygame.time.set_timer(ADD_ENEMY, 0)
                 pygame.time.set_timer(ADD_ENEMY, int(spawn_interval))
-                print(f"새로운 스폰 간격: {spawn_interval}ms")
 
-        # --- 공격 로직 (이벤트 루프 밖에서 항상 체크) ---
+        # --- 공격 로직 ---
         now = pygame.time.get_ticks()
         can_attack = now - player.last_attack_time > player.attack_speed * 1000
-        
-        fire_request = False
-        target_pos = None
-        use_nearest_enemy = False
+        fire_request, target_pos, use_nearest_enemy = False, None, False
 
-        # 1. 조준 모드에 따라 분기
         if player.aim_mode == 'auto_target':
-            fire_request = True
-            use_nearest_enemy = True
-        
-        elif player.aim_mode == 'manual_aim':
-            # 2. 수동 조준 모드 내에서 발사 방식에 따라 분기
-            if player.manual_fire_mode == 'cursor_auto_fire':
-                fire_request = True
-                target_pos = pygame.mouse.get_pos()
-            
-            elif player.manual_fire_mode == 'click_fire':
-                if pygame.mouse.get_pressed()[0]: # 마우스 왼쪽 버튼 누름 확인
-                    fire_request = True
-                    target_pos = pygame.mouse.get_pos()
+            fire_request, use_nearest_enemy = True, True
+        elif player.aim_mode == 'manual_aim' and (player.manual_fire_mode == 'cursor_auto_fire' or pygame.mouse.get_pressed()[0]):
+            fire_request, target_pos = True, mouse_pos
 
-        # 3. 발사 결정
         if fire_request and can_attack:
             player.last_attack_time = now
-            
-            if use_nearest_enemy:
-                if enemies: # 공격할 적이 있는지 확인
-                    new_weapon = Weapon(player, enemies=enemies)
-                    weapons.add(new_weapon)
-                    all_sprites.add(new_weapon)
-            elif target_pos:
-                new_weapon = Weapon(player, target_pos=target_pos)
+            target = enemies if use_nearest_enemy else target_pos
+            if target:
+                new_weapon = Weapon(player, target_pos=target_pos, enemies=enemies if use_nearest_enemy else None)
                 weapons.add(new_weapon)
                 all_sprites.add(new_weapon)
 
+        # --- 업데이트 ---
         all_sprites.update()
-        all_projectiles.update()
-        all_skill_effects.update()
+        all_coins.update()
 
+        # --- 충돌 처리 ---
+        # 무기-적 충돌
         hits = pygame.sprite.groupcollide(weapons, enemies, True, False)
         for weapon, hit_enemies_list in hits.items():
             primary_target = hit_enemies_list[0]
+            enemies_to_damage = [primary_target]
             if player.splash_radius > 0:
                 splash_rect = pygame.Rect(0, 0, player.splash_radius * 2, player.splash_radius * 2)
                 splash_rect.center = primary_target.rect.center
-                enemies_in_splash = [enemy for enemy in enemies if splash_rect.colliderect(enemy.rect)]
-                for enemy in enemies_in_splash:
-                    exp_gain = enemy.take_damage(player.attack_power)
-                    if exp_gain > 0:
-                        player.gain_exp(exp_gain)
-                        kill_count += 1
-            else:
-                exp_gain = primary_target.take_damage(player.attack_power)
+                enemies_to_damage = [enemy for enemy in enemies if splash_rect.colliderect(enemy.rect)]
+            
+            for enemy in enemies_to_damage:
+                exp_gain = enemy.take_damage(player.attack_power)
                 if exp_gain > 0:
                     player.gain_exp(exp_gain)
                     kill_count += 1
-        
+                    handle_enemy_death_drops(enemy, all_sprites, all_coins) # 코인 드랍
+
+        # 투사체-적 충돌
         projectile_hits = pygame.sprite.groupcollide(all_projectiles, enemies, True, False)
         for projectile, hit_enemies_list in projectile_hits.items():
             for enemy in hit_enemies_list:
@@ -458,7 +610,9 @@ def game_play_loop(selected_character_key):
                 if exp_gain > 0:
                     player.gain_exp(exp_gain)
                     kill_count += 1
+                    handle_enemy_death_drops(enemy, all_sprites, all_coins) # 코인 드랍
         
+        # 스킬-적 충돌
         skill_effect_hits = pygame.sprite.groupcollide(all_skill_effects, enemies, False, False)
         for skill_effect, hit_enemies_list in skill_effect_hits.items():
             if isinstance(skill_effect, AreaAttackEffect) and not skill_effect.has_damaged:
@@ -467,38 +621,53 @@ def game_play_loop(selected_character_key):
                     if exp_gain > 0:
                         player.gain_exp(exp_gain)
                         kill_count += 1
+                        handle_enemy_death_drops(enemy, all_sprites, all_coins) # 코인 드랍
                 skill_effect.has_damaged = True
 
-        if not player.is_invincible:
-            collided_enemies = pygame.sprite.spritecollide(player, enemies, True)
-            for enemy in collided_enemies:
-                player.hp -= enemy.attack_power
+        # 플레이어-코인 충돌
+        update_coin_collection(player, all_coins)
 
-        if player.hp <= 0:
-            print("플레이어가 사망했습니다. 게임 오버!")
-            running = False
-            return "change_character" # 게임 오버 시 캐릭터 선택 화면으로
+        # 플레이어-적 충돌
+        if not player.is_invincible:
+            # 1. 일반 적과의 충돌 처리
+            normal_enemies_group = pygame.sprite.Group([e for e in enemies if not isinstance(e, Boss)])
+            if pygame.sprite.spritecollide(player, normal_enemies_group, False):
+                collided_enemy = pygame.sprite.spritecollide(player, normal_enemies_group, False)[0]
+                player.take_damage(collided_enemy.attack_power)
+                collided_enemy.kill()
+
+            # 2. 보스와의 충돌 처리
+            boss_group = pygame.sprite.Group([e for e in enemies if isinstance(e, Boss)])
+            if pygame.sprite.spritecollide(player, boss_group, False):
+                boss = boss_group.sprites()[0]
+                player.take_damage(boss.attack_power)
+                boss.take_damage(10) # 보스 반사 데미지
+                direction = (player.pos - boss.pos).normalize() if (player.pos - boss.pos).length() > 0 else pygame.math.Vector2(0, -1)
+                player.pos += direction * 150
+                player.rect.center = player.pos
+                player.is_invincible = True
+                player.dash_start_time = pygame.time.get_ticks()
+
+        if player.hp <= 0: return "change_character"
 
         if kill_count >= 100 and not is_boss_spawned:
             is_boss_spawned = True
-            boss_key = STAGES[current_stage_index]["boss"]
-            boss = Boss(boss_key, player, stage_level)
+            boss = Boss(STAGES[current_stage_index]["boss"], player, stage_level)
             enemies.add(boss)
             all_sprites.add(boss)
 
+        # --- 그리기 ---
         screen.fill(BLACK)
         all_sprites.draw(screen)
-
-        # 모든 적의 체력 바 그리기 (보스 제외)
         for enemy in enemies:
-            if not isinstance(enemy, Boss):
-                enemy.draw_health_bar(screen)
-
+            if not isinstance(enemy, Boss): enemy.draw_health_bar(screen)
         draw_hud(screen, player, current_stage_index, kill_count, is_boss_spawned, enemies)
+        draw_coin_hud(screen, player)
         pygame.display.flip()
         pygame.time.Clock().tick(FPS)
     
-    return "continue" # 일반적인 루프 종료 (예: 캐릭터 변경)
+    return "continue"
+
 
 def main():
     while True:
