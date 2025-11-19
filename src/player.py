@@ -233,6 +233,16 @@ class Player(pygame.sprite.Sprite):
         self.exp_to_next_level = (level_tier + 1) * 1000
         print(f"레벨 업! 현재 레벨: {self.level}")
 
+        # 레벨업 스탯 증가 적용
+        self.max_hp += PLAYER_HP_PER_LEVEL
+        self.hp = self.max_hp # 최대 체력 증가 시 현재 체력도 최대치로 회복
+        self.base_attack_power += PLAYER_ATTACK_POWER_PER_LEVEL
+        self.attack_power = self.base_attack_power # 기본 공격력도 함께 업데이트
+        self.defense += PLAYER_DEFENSE_PER_LEVEL
+        self.base_move_speed *= PLAYER_MOVE_SPEED_PER_LEVEL_MULTIPLIER
+        self.move_speed = self.base_move_speed # 기본 이동 속도도 함께 업데이트
+        print(f"  - 최대 체력: {self.max_hp}, 공격력: {self.attack_power}, 방어력: {self.defense}, 이동 속도: {self.move_speed:.2f}")
+
         # 만료된 임시 버프 확인 및 제거
         expired_boosts = []
         for stat, boost_info in self.temporary_boosts.items():

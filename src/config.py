@@ -21,6 +21,12 @@ PURPLE = (128, 0, 128)
 # --- 게임 플레이 설정 ---
 COIN_COLLECTION_RADIUS = 50 # 코인 수집 반경 (픽셀)
 
+# --- 플레이어 레벨업 스탯 증가 설정 ---
+PLAYER_HP_PER_LEVEL = 50
+PLAYER_ATTACK_POWER_PER_LEVEL = 10
+PLAYER_DEFENSE_PER_LEVEL = 1
+PLAYER_MOVE_SPEED_PER_LEVEL_MULTIPLIER = 1.01 # 1% 증가
+
 # --- 캐릭터 정보 ---
 # 기획서에 명시된 스탯을 기반으로 작성
 # key: 캐릭터 영문명 (코드 내에서 사용할 이름)

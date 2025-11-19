@@ -493,6 +493,37 @@ def shop_screen(player):
     return "continue"
 
 
+def game_over_screen(player, final_kill_count, final_level):
+    game_over = True
+    
+    retry_button = Button("다시 시작", SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 + 50, 300, 60, LIGHT_GRAY, WHITE, "retry")
+    quit_button = Button("게임 종료", SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 + 130, 300, 60, LIGHT_GRAY, WHITE, "exit_game")
+    buttons = [retry_button, quit_button]
+
+    while game_over:
+        mouse_pos = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "exit_game"
+            
+            for btn in buttons:
+                result = btn.handle_event(event)
+                if result:
+                    return result
+
+        screen.fill(BLACK)
+        draw_text("GAME OVER", TITLE_FONT, RED, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100, center=True)
+        draw_text(f"최종 레벨: {final_level}", DESC_FONT, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 20, center=True)
+        draw_text(f"처치 수: {final_kill_count}", DESC_FONT, WHITE, screen, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 20, center=True)
+
+        for btn in buttons:
+            btn.is_hovered = btn.rect.collidepoint(mouse_pos)
+            btn.draw(screen)
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(FPS)
+
+
 def game_play_loop(selected_character_key):
     all_sprites, enemies, weapons = pygame.sprite.Group(), pygame.sprite.Group(), pygame.sprite.Group()
     all_coins = pygame.sprite.Group()
@@ -648,7 +679,7 @@ def game_play_loop(selected_character_key):
                 player.is_invincible = True
                 player.dash_start_time = pygame.time.get_ticks()
 
-        if player.hp <= 0: return "change_character"
+        if player.hp <= 0: return game_over_screen(player, kill_count, player.level)
 
         if kill_count >= 100 and not is_boss_spawned:
             is_boss_spawned = True
@@ -678,6 +709,12 @@ def main():
         action = game_play_loop(selected_character)
         if action == "exit_game":
             break # 게임 완전 종료
+        elif action == "retry":
+            # game_play_loop will be called again with the same selected_character
+            continue 
+        elif action == "change_character":
+            # character_selection_screen will be called again
+            continue
 
 if __name__ == '__main__':
     main()
