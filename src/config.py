@@ -216,6 +216,13 @@ ENEMIES = {
         "attack_power": 525,
         "move_speed": 2,
         "exp": 0
+    },
+    "fileerror": {
+        "name": "파일 오류",
+        "hp": 1,
+        "attack_power": 0,
+        "move_speed": 0,
+        "exp": 0
     }
 }
 

@@ -63,6 +63,32 @@ class Player(pygame.sprite.Sprite):
         image_key = "swordman" if self.character_key == "swordsman" else self.character_key
         image_path = f"src/assets/images/{image_key}.png"
         self.image = load_image(image_path, scale=(50, 50))
+
+        if self.character_key == 'archer':
+            self.image_idle = self.image
+            self.image_dash = load_image('src/assets/images/archer_2.png', scale=(50, 50))
+            self.image_attack = load_image('src/assets/images/archer_attack.png', scale=(50, 50))
+            
+        if self.character_key == 'assassin':
+            self.image_idle = self.image # assassin.png (기본 이미지)
+            self.image_walk = load_image('src/assets/images/assassin_walk.png', scale=(50, 50))
+            self.image_attack = load_image('src/assets/images/assassin_attack.png', scale=(50, 50))
+
+        elif self.character_key == 'knight':
+            self.image_idle = self.image # knight.png (기본 이미지)
+            self.image_walk = load_image('src/assets/images/knight_walk.png', scale=(50, 50))
+            self.image_attack = load_image('src/assets/images/knight_attack.png', scale=(50, 50))
+
+        elif self.character_key == 'viking':
+            self.image_idle = self.image # viking.png (기본 이미지)
+            self.image_walk = self.image # viking.png (걷는 이미지도 동일)
+            self.image_attack = load_image('src/assets/images/viking_attack.png', scale=(50, 50))
+
+        elif self.character_key == 'wizard':
+            self.image_idle = self.image # wizard.png (기본 이미지)
+            self.image_walk = self.image # wizard.png (걷는 이미지도 동일)
+            self.image_attack = load_image('src/assets/images/wizard_attack.png', scale=(50, 50))
+
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
         
         self.pos = pygame.math.Vector2(self.rect.center)
@@ -363,6 +389,51 @@ class Player(pygame.sprite.Sprite):
         if self.pos.y < 0: self.pos.y = 0
         if self.pos.y > SCREEN_HEIGHT: self.pos.y = SCREEN_HEIGHT
             
+        # 궁수 애니메이션 상태 업데이트
+        if self.character_key == 'archer':
+            if self.is_skill_active:
+                self.image = self.image_attack
+            elif self.is_dashing:
+                self.image = self.image_dash
+            else:
+                self.image = self.image_idle
+        
+        # 암살자 애니메이션 상태 업데이트
+        elif self.character_key == 'assassin':
+            if self.is_skill_active:
+                self.image = self.image_attack
+            elif self.velocity.length() > 0 or self.is_dashing:
+                self.image = self.image_walk
+            else:
+                self.image = self.image_idle
+
+        # 나이트 애니메이션 상태 업데이트
+        elif self.character_key == 'knight':
+            if self.is_skill_active:
+                self.image = self.image_attack
+            elif self.velocity.length() > 0 or self.is_dashing:
+                self.image = self.image_walk
+            else:
+                self.image = self.image_idle
+        
+        # 바이킹 애니메이션 상태 업데이트
+        elif self.character_key == 'viking':
+            if self.is_skill_active:
+                self.image = self.image_attack
+            elif self.velocity.length() > 0 or self.is_dashing:
+                self.image = self.image_walk
+            else:
+                self.image = self.image_idle
+
+        # 마법사 애니메이션 상태 업데이트
+        elif self.character_key == 'wizard':
+            if self.is_skill_active:
+                self.image = self.image_attack
+            elif self.velocity.length() > 0 or self.is_dashing:
+                self.image = self.image_walk
+            else:
+                self.image = self.image_idle
+
         self.rect.center = self.pos
 
     def draw(self, surface):
