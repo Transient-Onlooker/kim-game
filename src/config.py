@@ -103,21 +103,21 @@ ENEMIES = {
     # 불 스테이지
     "black_demon": {
         "name": "검은 악마",
-        "hp": 100,
+        "hp": 200,
         "attack_power": 40,
         "move_speed": 3,
         "exp": 100
     },
     "axe_demon": {
         "name": "도끼든 악마",
-        "hp": 250,
+        "hp": 500,
         "attack_power": 75,
         "move_speed": 3,
         "exp": 200
     },
     "sword_demon": {
         "name": "칼든 악마",
-        "hp": 250,
+        "hp": 500,
         "attack_power": 100,
         "move_speed": 3,
         "exp": 300
@@ -125,21 +125,21 @@ ENEMIES = {
     # 얼음 스테이지
     "white_cutie": {
         "name": "흰색 귀요미",
-        "hp": 100,
+        "hp": 200,
         "attack_power": 75,
         "move_speed": 3,
         "exp": 100
     },
     "blue_slime": {
         "name": "파란 슬라임",
-        "hp": 350,
+        "hp": 700,
         "attack_power": 40,
         "move_speed": 3, # 원안: 5
         "exp": 200
     },
     "ice_giant": {
         "name": "얼음거인",
-        "hp": 300,
+        "hp": 1200,
         "attack_power": 50,
         "move_speed": 3,
         "exp": 300
@@ -147,21 +147,21 @@ ENEMIES = {
     # 독 스테이지
     "snake": {
         "name": "뱀",
-        "hp": 100,
+        "hp": 200,
         "attack_power": 40,
         "move_speed": 3,
         "exp": 100
     },
     "spear_snake": {
         "name": "창든 뱀",
-        "hp": 150,
+        "hp": 300,
         "attack_power": 75,
         "move_speed": 3,
         "exp": 200
     },
     "eye_monster": {
         "name": "눈알괴물",
-        "hp": 400,
+        "hp": 800,
         "attack_power": 100,
         "move_speed": 3,
         "exp": 300
@@ -169,21 +169,21 @@ ENEMIES = {
     # 공허 스테이지
     "skeleton": {
         "name": "해골",
-        "hp": 100,
+        "hp": 200,
         "attack_power": 50,
         "move_speed": 3,
         "exp": 100
     },
     "armored_skeleton": {
         "name": "갑옷해골",
-        "hp": 200,
+        "hp": 400,
         "attack_power": 100,
         "move_speed": 3,
         "exp": 200
     },
     "ghost": {
         "name": "귀신",
-        "hp": 350,
+        "hp": 700,
         "attack_power": 150,
         "move_speed": 3, # 원안: 13
         "exp": 300
@@ -191,28 +191,28 @@ ENEMIES = {
     # --- 보스 ---
     "fire_boss": {
         "name": "화염 군주",
-        "hp": 5000,
+        "hp": 10000,
         "attack_power": 300,
         "move_speed": 2,
         "exp": 0 # 보스는 경험치 대신 즉시 레벨업
     },
     "ice_boss": {
         "name": "빙하의 주인",
-        "hp": 6000,
+        "hp": 12000,
         "attack_power": 375,
         "move_speed": 2,
         "exp": 0
     },
     "poison_boss": {
         "name": "독의 화신",
-        "hp": 7000,
+        "hp": 14000,
         "attack_power": 450,
         "move_speed": 2,
         "exp": 0
     },
     "void_boss": {
         "name": "공허의 그림자",
-        "hp": 8000,
+        "hp": 16000,
         "attack_power": 525,
         "move_speed": 2,
         "exp": 0

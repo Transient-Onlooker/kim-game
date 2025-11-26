@@ -4,7 +4,7 @@ from config import *
 from utils import load_image
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, enemy_key, player, stage_level=1):
+    def __init__(self, enemy_key, player, side, stage_level=1):
         super().__init__()
         
         self.enemy_key = enemy_key # 적 종류를 식별하기 위한 키 저장
@@ -13,7 +13,7 @@ class Enemy(pygame.sprite.Sprite):
         self.stats = ENEMIES[enemy_key].copy() # 원본 딕셔너리 수정을 방지하기 위해 복사
         
         # 스테이지 레벨에 따른 스탯 강화
-        multiplier = 1.5 ** (stage_level - 1)
+        multiplier = 1.8 ** (stage_level - 1)
         self.hp = self.stats['hp'] * multiplier
         self.max_hp = self.stats['hp'] * multiplier
         self.attack_power = self.stats['attack_power'] * multiplier
@@ -25,50 +25,50 @@ class Enemy(pygame.sprite.Sprite):
         self.animation_speed = 300 # 0.3초마다 프레임 변경
         
         if self.enemy_key == 'blue_slime':
-            self.animation_frames.append(load_image('src/assets/images/blue_slime_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/blue_slime_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/blue_slime_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/blue_slime_2.png', scale=(120, 120)))
         elif self.enemy_key == 'white_cutie':
-            self.animation_frames.append(load_image('src/assets/images/white_cutie_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/white_cutie_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/white_cutie_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/white_cutie_2.png', scale=(120, 120)))
         elif self.enemy_key == 'ice_giant':
-            self.animation_frames.append(load_image('src/assets/images/ice_giant_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/ice_giant_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/ice_giant_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/ice_giant_2.png', scale=(120, 120)))
         elif self.enemy_key == 'snake':
-            self.animation_frames.append(load_image('src/assets/images/snake_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/snake_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/snake_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/snake_2.png', scale=(120, 120)))
         elif self.enemy_key == 'spear_snake':
-            self.animation_frames.append(load_image('src/assets/images/spear_snake_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/spear_snake_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/spear_snake_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/spear_snake_2.png', scale=(120, 120)))
         elif self.enemy_key == 'black_demon':
-            self.animation_frames.append(load_image('src/assets/images/black_demon_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/black_demon_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/black_demon_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/black_demon_2.png', scale=(120, 120)))
         elif self.enemy_key == 'axe_demon':
-            self.animation_frames.append(load_image('src/assets/images/axe_demon_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/axe_demon_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/axe_demon_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/axe_demon_2.png', scale=(120, 120)))
         elif self.enemy_key == 'sword_demon':
-            self.animation_frames.append(load_image('src/assets/images/sword_demon_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/sword_demon_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/sword_demon_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/sword_demon_2.png', scale=(120, 120)))
         elif self.enemy_key == 'eye_monster':
-            self.animation_frames.append(load_image('src/assets/images/eye_monster_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/eye_monster_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/eye_monster_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/eye_monster_2.png', scale=(120, 120)))
         elif self.enemy_key == 'skeleton':
-            self.animation_frames.append(load_image('src/assets/images/skeleton_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/skeleton_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/skeleton_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/skeleton_2.png', scale=(120, 120)))
         elif self.enemy_key == 'armored_skeleton':
-            self.animation_frames.append(load_image('src/assets/images/armored_skeleton_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/armored_skeleton_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/armored_skeleton_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/armored_skeleton_2.png', scale=(120, 120)))
         elif self.enemy_key == 'ghost':
-            self.animation_frames.append(load_image('src/assets/images/ghost_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/ghost_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/ghost_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/ghost_2.png', scale=(120, 120)))
         elif self.enemy_key == 'fire_boss':
-            self.animation_frames.append(load_image('src/assets/images/fire_boss_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/fire_boss_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/fire_boss_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/fire_boss_2.png', scale=(120, 120)))
         elif self.enemy_key == 'poison_boss':
-            self.animation_frames.append(load_image('src/assets/images/poison_boss_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/poison_boss_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/poison_boss_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/poison_boss_2.png', scale=(120, 120)))
         elif self.enemy_key == 'void_boss':
-            self.animation_frames.append(load_image('src/assets/images/void_boss_1.png', scale=(40, 40)))
-            self.animation_frames.append(load_image('src/assets/images/void_boss_2.png', scale=(40, 40)))
+            self.animation_frames.append(load_image('src/assets/images/void_boss_1.png', scale=(120, 120)))
+            self.animation_frames.append(load_image('src/assets/images/void_boss_2.png', scale=(120, 120)))
 
         if self.animation_frames:
             self.current_frame_index = 0
@@ -77,7 +77,7 @@ class Enemy(pygame.sprite.Sprite):
         else:
             # 애니메이션 프레임이 없는 경우, 기존 방식대로 단일 이미지 로드
             image_path = f"src/assets/images/{enemy_key}.png"
-            self.image = load_image(image_path, scale=(40, 40))
+            self.image = load_image(image_path, scale=(120, 120))
 
         # 위치 설정
         if side == 'top':

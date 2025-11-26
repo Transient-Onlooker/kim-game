@@ -14,15 +14,34 @@ class Boss(pygame.sprite.Sprite):
         self.stats = ENEMIES[boss_key].copy()
         
         # 스테이지 레벨에 따른 스탯 강화
-        multiplier = 1.5 ** (stage_level - 1)
+        multiplier = 1.8 ** (stage_level - 1)
         self.hp = self.stats['hp'] * multiplier
         self.max_hp = self.stats['hp'] * multiplier
         self.attack_power = self.stats['attack_power'] * multiplier
         self.move_speed = self.stats['move_speed']
         
-        # 이미지 및 위치 (크기를 더 크게 설정)
-        image_path = f"src/assets/images/{boss_key}.png"
-        self.image = load_image(image_path, scale=(120, 120))
+        # 이미지 및 애니메이션 설정
+        self.animation_frames = []
+        self.animation_speed = 300 # 0.3초마다 프레임 변경
+        
+        if self.enemy_key == 'fire_boss':
+            self.animation_frames.append(load_image('src/assets/images/fire_boss_1.png', scale=(180, 180)))
+            self.animation_frames.append(load_image('src/assets/images/fire_boss_2.png', scale=(180, 180)))
+        elif self.enemy_key == 'poison_boss':
+            self.animation_frames.append(load_image('src/assets/images/poison_boss_1.png', scale=(180, 180)))
+            self.animation_frames.append(load_image('src/assets/images/poison_boss_2.png', scale=(180, 180)))
+        elif self.enemy_key == 'void_boss':
+            self.animation_frames.append(load_image('src/assets/images/void_boss_1.png', scale=(180, 180)))
+            self.animation_frames.append(load_image('src/assets/images/void_boss_2.png', scale=(180, 180)))
+
+        if self.animation_frames:
+            self.current_frame_index = 0
+            self.image = self.animation_frames[self.current_frame_index]
+            self.last_animation_time = pygame.time.get_ticks()
+        else:
+            # 애니메이션 프레임이 없는 경우, 기존 방식대로 단일 이미지 로드
+            image_path = f"src/assets/images/{boss_key}.png"
+            self.image = load_image(image_path, scale=(180, 180))
             
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, 150)) # 화면 상단 중앙에서 등장
         self.pos = pygame.math.Vector2(self.rect.center)
@@ -44,6 +63,18 @@ class Boss(pygame.sprite.Sprite):
             direction.normalize_ip()
             self.pos += direction * self.move_speed
         self.rect.center = self.pos
+        self.animate()
+
+    def animate(self):
+        """애니메이션 프레임을 업데이트합니다."""
+        if not self.animation_frames:
+            return
+
+        now = pygame.time.get_ticks()
+        if now - self.last_animation_time > self.animation_speed:
+            self.last_animation_time = now
+            self.current_frame_index = (self.current_frame_index + 1) % len(self.animation_frames)
+            self.image = self.animation_frames[self.current_frame_index]
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)

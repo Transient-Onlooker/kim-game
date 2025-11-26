@@ -391,7 +391,8 @@ def shop_screen(player):
             "icon": item_info["icon"],
             "value": value,
             "price": price,
-            "description": ""
+            "description": "",
+            "purchased": False # 구매 상태 플래그 추가
         }
 
         if item["type"] == "consumable":
@@ -419,11 +420,14 @@ def shop_screen(player):
             if exit_button.handle_event(event) == "exit": shopping = False
 
             for i, btn in enumerate(item_buttons):
+                item_to_buy = shop_items[i]
+                if item_to_buy["purchased"]: continue # 이미 구매한 항목은 건너뜀
+
                 if btn.handle_event(event):
-                    item_to_buy = shop_items[i]
                     if player.coins >= item_to_buy["price"]:
                         player.coins -= item_to_buy["price"]
                         print(f"{item_to_buy['name']}을(를) 구매했습니다!")
+                        item_to_buy["purchased"] = True # 구매 플래그 설정
 
                         # 아이템 효과 적용
                         if item_to_buy["type"] == "consumable":
@@ -437,23 +441,15 @@ def shop_screen(player):
                             amount = item_to_buy["value"]
                             duration = item_to_buy["duration"]
                             
-                            # 기존 버프가 있으면 중첩 (만료 레벨은 새로 갱신)
                             if stat in player.temporary_boosts:
-                                # 기존 버프 제거
                                 old_amount = player.temporary_boosts[stat]["amount"]
                                 setattr(player, stat, getattr(player, stat) - old_amount)
                                 
-                            # 새 버프 적용
                             setattr(player, stat, getattr(player, stat) + amount)
                             player.temporary_boosts[stat] = {
                                 "amount": amount,
                                 "expire_level": player.level + duration
                             }
-
-                        # 구매 후 버튼 비활성화 또는 제거
-                        shop_items.pop(i)
-                        item_buttons.pop(i)
-                        break # 버튼 리스트가 변경되었으므로 루프 탈출
                     else:
                         print("코인이 부족합니다!")
 
@@ -466,25 +462,27 @@ def shop_screen(player):
         draw_text("상점", TITLE_FONT, WHITE, screen, SCREEN_WIDTH / 2, 100, center=True)
         
         merchant_icon = load_image("src/assets/images/merchant.png", scale=(150, 150))
-        screen.blit(merchant_icon, (SCREEN_WIDTH / 2 - 75, 180))
+        screen.blit(merchant_icon, (SCREEN_WIDTH / 2 - 225, 180)) # 중앙 정렬
 
         # 아이템 정보 표시
         item_x = 380
         for item in shop_items:
-            icon_path = f"src/assets/images/{item['icon']}"
-            icon = load_image(icon_path, scale=(80, 80))
-            screen.blit(icon, (item_x - 40, 420))
-            
-            draw_text(item["name"], DESC_FONT, WHITE, screen, item_x, 520, center=True)
-            draw_text(item["description"], STATS_FONT, GREEN, screen, item_x, 570, center=True)
+            if not item["purchased"]:
+                icon_path = f"src/assets/images/{item['icon']}"
+                icon = load_image(icon_path, scale=(80, 80))
+                screen.blit(icon, (item_x - 120, 420)) # 중앙 정렬
+                
+                draw_text(item["name"], DESC_FONT, WHITE, screen, item_x, 520, center=True)
+                draw_text(item["description"], STATS_FONT, GREEN, screen, item_x, 570, center=True)
             item_x += 500
 
         # 버튼 그리기
         exit_button.is_hovered = exit_button.rect.collidepoint(mouse_pos)
         exit_button.draw(screen)
-        for btn in item_buttons:
-            btn.is_hovered = btn.rect.collidepoint(mouse_pos)
-            btn.draw(screen)
+        for i, btn in enumerate(item_buttons):
+            if not shop_items[i]["purchased"]:
+                btn.is_hovered = btn.rect.collidepoint(mouse_pos)
+                btn.draw(screen)
         
         draw_coin_hud(screen, player)
         pygame.display.flip()
@@ -563,7 +561,8 @@ def game_play_loop(selected_character_key):
             
             if event.type == ADD_ENEMY and not is_boss_spawned:
                 enemy_key = random.choice(STAGES[current_stage_index]["enemies"])
-                new_enemy = Enemy(enemy_key, player, stage_level)
+                side = random.choice(['top', 'bottom', 'left', 'right'])
+                new_enemy = Enemy(enemy_key, player, side, stage_level)
                 enemies.add(new_enemy)
                 all_sprites.add(new_enemy)
             
@@ -583,7 +582,7 @@ def game_play_loop(selected_character_key):
                 if shop_action == "exit_game":
                     return "exit_game"
 
-                player.level_up()
+                player.level_up(forced=True)
                 current_stage_index = (current_stage_index + 1) % len(STAGES)
                 stage_level += 1
                 kill_count = 0

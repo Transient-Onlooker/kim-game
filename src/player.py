@@ -62,32 +62,32 @@ class Player(pygame.sprite.Sprite):
         # --- 이미지 및 위치 ---
         image_key = "swordman" if self.character_key == "swordsman" else self.character_key
         image_path = f"src/assets/images/{image_key}.png"
-        self.image = load_image(image_path, scale=(50, 50))
+        self.image = load_image(image_path, scale=(150, 150))
 
         if self.character_key == 'archer':
             self.image_idle = self.image
-            self.image_dash = load_image('src/assets/images/archer_2.png', scale=(50, 50))
-            self.image_attack = load_image('src/assets/images/archer_attack.png', scale=(50, 50))
+            self.image_dash = load_image('src/assets/images/archer_2.png', scale=(150, 150))
+            self.image_attack = load_image('src/assets/images/archer_attack.png', scale=(150, 150))
             
         if self.character_key == 'assassin':
             self.image_idle = self.image # assassin.png (기본 이미지)
-            self.image_walk = load_image('src/assets/images/assassin_walk.png', scale=(50, 50))
-            self.image_attack = load_image('src/assets/images/assassin_attack.png', scale=(50, 50))
+            self.image_walk = load_image('src/assets/images/assassin_walk.png', scale=(150, 150))
+            self.image_attack = load_image('src/assets/images/assassin_attack.png', scale=(150, 150))
 
         elif self.character_key == 'knight':
             self.image_idle = self.image # knight.png (기본 이미지)
-            self.image_walk = load_image('src/assets/images/knight_walk.png', scale=(50, 50))
-            self.image_attack = load_image('src/assets/images/knight_attack.png', scale=(50, 50))
+            self.image_walk = load_image('src/assets/images/knight_walk.png', scale=(150, 150))
+            self.image_attack = load_image('src/assets/images/knight_attack.png', scale=(150, 150))
 
         elif self.character_key == 'viking':
             self.image_idle = self.image # viking.png (기본 이미지)
             self.image_walk = self.image # viking.png (걷는 이미지도 동일)
-            self.image_attack = load_image('src/assets/images/viking_attack.png', scale=(50, 50))
+            self.image_attack = load_image('src/assets/images/viking_attack.png', scale=(150, 150))
 
         elif self.character_key == 'wizard':
             self.image_idle = self.image # wizard.png (기본 이미지)
             self.image_walk = self.image # wizard.png (걷는 이미지도 동일)
-            self.image_attack = load_image('src/assets/images/wizard_attack.png', scale=(50, 50))
+            self.image_attack = load_image('src/assets/images/wizard_attack.png', scale=(150, 150))
 
         self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
         
@@ -252,8 +252,12 @@ class Player(pygame.sprite.Sprite):
         actual_damage = max(1, amount - self.defense) # 최소 1의 데미지는 받도록
         self.hp -= actual_damage
 
-    def level_up(self):
-        self.exp -= self.exp_to_next_level
+    def level_up(self, forced=False):
+        if forced:
+            self.exp = 0
+        else:
+            self.exp -= self.exp_to_next_level
+        
         self.level += 1
         level_tier = (self.level - 1) // 10
         self.exp_to_next_level = (level_tier + 1) * 1000
